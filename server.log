@@ -1,0 +1,5 @@
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+[2m1:54:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+Server running on http://localhost:3000
+WebSocket at ws://localhost:3000/ws
+[2m1:54:35 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...

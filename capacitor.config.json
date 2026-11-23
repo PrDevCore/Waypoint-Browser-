@@ -1,0 +1,6 @@
+{
+  "appId": "com.prdevcore.waypoint",
+  "appName": "Waypoint",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
