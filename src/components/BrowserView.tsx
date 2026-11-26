@@ -382,6 +382,21 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
     setPanel(null);
   }, [engine, activeId, wv, isDesktopApp]);
 
+  // Detect CSP frame-ancestors violations (e.g., DuckDuckGo blocking framing)
+  // iframe onError doesn't fire reliably for CSP violations in all browsers,
+  // so this document-level listener is the backup.
+  useEffect(() => {
+    const onSecurityPolicyViolation = (e: SecurityPolicyViolationEvent) => {
+      if (e.violatedDirective === 'frame-ancestors' && e.blockedURI) {
+        setIframeBlocked(e.blockedURI);
+      }
+    };
+    document.addEventListener('securitypolicyviolation', onSecurityPolicyViolation);
+    return () => {
+      document.removeEventListener('securitypolicyviolation', onSecurityPolicyViolation);
+    };
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); navigate(urlInput); };
 
   const addTab = (url = browserSettings.newTabPage === 'homepage' ? browserSettings.homepage : NEW_TAB_URL) => {
