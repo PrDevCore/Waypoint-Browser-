@@ -870,7 +870,7 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
                   src={tab.url}
                   title={tab.title}
                   referrerPolicy="strict-origin-when-cross-origin"
-                  allow="camera *; microphone *; geolocation *; clipboard-read *; clipboard-write *"
+                  allow="camera *; microphone *; geolocation *"
                   loading="eager"
                 />
               )}
