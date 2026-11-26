@@ -18,3 +18,10 @@ proxyscrape*.txt
 *.pem
 *.key
 certificates/
+
+# Android signing keystores - DO NOT COMMIT
+*.keystore
+*.jks
+android/gradle.properties
+android/app/*.keystore
+android/app/*.jks

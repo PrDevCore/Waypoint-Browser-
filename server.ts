@@ -19,7 +19,7 @@ httpServer.on("upgrade", (req, socket, head) => {
 
 async function startServer() {
   const PORT = process.env.PORT || 3000;
-  const HOST = process.env.HOST || "127.0.0.1";
+  const HOST = process.env.HOST || "0.0.0.0";
 
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");

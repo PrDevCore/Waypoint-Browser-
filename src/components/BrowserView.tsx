@@ -195,11 +195,29 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
   const [historyFilter, setHistoryFilter] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
+  const isDesktopApp = Boolean(window.electronAPI);
   const webviewRefs = useRef<Record<string, Electron.WebviewTag | null>>({});
   const webviewReady = useRef<Record<string, boolean>>({});
   const webviewCleanups = useRef<Record<string, () => void>>({});
   const wv = useCallback(() => webviewRefs.current[activeId] ?? null, [activeId]);
+
+  const openExternal = useCallback(async (url: string) => {
+    // Prefer Capacitor Browser API on mobile (Android/iOS WebView)
+    const capBrowser = (window as any).Capacitor?.Plugins?.Browser;
+    if (capBrowser) {
+      try {
+        await capBrowser.open({ url });
+        return;
+      } catch {
+        // fall through to window.open
+      }
+    }
+    const openedWindow = window.open(url, '_blank');
+    if (openedWindow) openedWindow.opener = null;
+    else setLoadError(`Your browser blocked opening ${url}. Allow pop-ups and try again.`);
+  }, []);
 
   const safeSetZoomFactor = useCallback((webview: Electron.WebviewTag | null, zoomFactor: number) => {
     if (!webview) return;
@@ -346,11 +364,21 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
   const navigate = useCallback((raw: string) => {
     const url = normalizeUrl(raw, engine);
     setLoadError(null);
-    wv()?.loadURL(url);
+    if (isDesktopApp) {
+      const webview = wv();
+      if (typeof webview?.loadURL === 'function') webview.loadURL(url);
+    }
+    // On mobile (Capacitor), the iframe below re-renders with the new src —
+    // no window.open needed for embedded browsing.
     setUrlInput(url);
-    setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url, isLoading: true } : t));
+    setTabs(prev => prev.map(t => t.id === activeId
+      ? { ...t, url, title: isDesktopApp ? t.title : url, favicon: isDesktopApp ? t.favicon : faviconFor(url), isLoading: isDesktopApp }
+      : t));
+    if (!isDesktopApp) {
+      setHistory(prev => [{ url, title: url, favicon: faviconFor(url), visitedAt: Date.now() }, ...prev].slice(0, MAX_HISTORY));
+    }
     setPanel(null);
-  }, [engine, activeId, wv]);
+  }, [engine, activeId, wv, isDesktopApp]);
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); navigate(urlInput); };
 
@@ -490,7 +518,10 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
         <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-0.5 shrink-0">
             <button
-              onClick={() => wv()?.goBack()}
+              onClick={() => {
+                const webview = wv();
+                if (typeof webview?.goBack === 'function') webview.goBack();
+              }}
               disabled={!activeTab.canGoBack}
               aria-label="Back"
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
@@ -498,7 +529,10 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
               <ArrowLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => wv()?.goForward()}
+              onClick={() => {
+                const webview = wv();
+                if (typeof webview?.goForward === 'function') webview.goForward();
+              }}
               disabled={!activeTab.canGoForward}
               aria-label="Forward"
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
@@ -506,13 +540,25 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => activeTab.isLoading ? wv()?.stop() : wv()?.reload()}
-              aria-label={activeTab.isLoading ? 'Stop' : 'Reload'}
+              onClick={() => {
+                const webview = wv();
+                if (activeTab.isLoading) {
+                  if (typeof webview?.stop === 'function') webview.stop();
+                } else if (typeof webview?.reload === 'function') {
+                  webview.reload();
+                } else if (!isDesktopApp) {
+                  // On mobile, increment reloadKey to force iframe re-mount
+                  setReloadKey(k => k + 1);
+                }
+              }}
+              aria-label={isDesktopApp ? (activeTab.isLoading ? 'Stop' : 'Reload') : 'Open in browser'}
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              {activeTab.isLoading
+              {isDesktopApp && activeTab.isLoading
                 ? <X className="w-4 h-4 text-slate-500" />
-                : <RotateCw className="w-4 h-4" />}
+                : isDesktopApp
+                  ? <RotateCw className="w-4 h-4" />
+                  : <Globe className="w-4 h-4" />}
             </button>
           </div>
 
@@ -808,13 +854,24 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
             >
               {tab.url === NEW_TAB_URL ? (
                 <NewTabPage bookmarks={bookmarks} onNavigate={url => { navigate(url); }} />
-              ) : (
+              ) : isDesktopApp ? (
                 <webview
                   ref={el => wireWebview(tab.id, el as unknown as Electron.WebviewTag | null)}
                   src={tab.url}
                   partition="persist:waypoint-browser"
                   className="w-full h-full border-0"
                   allowpopups={true}
+                />
+              ) : (
+                // MOBILE: Load URL inside an iframe within the Capacitor WebView
+                <iframe
+                  key={`${tab.id}-${reloadKey}`}
+                  className="w-full h-full border-0"
+                  src={tab.url}
+                  title={tab.title}
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="camera *; microphone *; geolocation *; clipboard-read *; clipboard-write *"
+                  loading="eager"
                 />
               )}
             </div>

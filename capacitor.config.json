@@ -2,5 +2,9 @@
   "appId": "com.prdevcore.waypoint",
   "appName": "Waypoint",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["http://*", "https://*"]
+  }
 }
