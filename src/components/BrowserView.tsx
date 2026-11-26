@@ -194,6 +194,7 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
   const [panel, setPanel] = useState<Panel>(null);
   const [historyFilter, setHistoryFilter] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [iframeBlocked, setIframeBlocked] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -364,6 +365,7 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
   const navigate = useCallback((raw: string) => {
     const url = normalizeUrl(raw, engine);
     setLoadError(null);
+    setIframeBlocked(null);
     if (isDesktopApp) {
       const webview = wv();
       if (typeof webview?.loadURL === 'function') webview.loadURL(url);
@@ -847,6 +849,29 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
               </div>
             </div>
           )}
+          {iframeBlocked && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+              <div className="max-w-lg text-center">
+                <AlertTriangle className="w-6 h-6 mb-2 text-amber-500" />
+                <h3 className="text-sm font-semibold mb-1">This site can't be embedded</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 break-words mb-4">
+                  {iframeBlocked} blocks embedding in another page (X-Frame-Options).
+                </p>
+                <button
+                  onClick={() => { openExternal(iframeBlocked!); setIframeBlocked(null); }}
+                  className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500"
+                >
+                  Open in external browser
+                </button>
+                <button
+                  onClick={() => setIframeBlocked(null)}
+                  className="mt-3 text-xs underline text-brand-600 hover:text-brand-500"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
           {tabs.map(tab => (
             <div
               key={tab.id}
@@ -872,6 +897,10 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
                   referrerPolicy="strict-origin-when-cross-origin"
                   allow="camera *; microphone *; geolocation *"
                   loading="eager"
+                  onError={() => {
+                    setIframeBlocked(tab.url);
+                    setLoadError(null);
+                  }}
                 />
               )}
             </div>
