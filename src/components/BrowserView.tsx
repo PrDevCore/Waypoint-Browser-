@@ -38,15 +38,26 @@ interface HistoryEntry {
 
 type Panel = 'bookmarks' | 'history' | 'downloads' | 'vpn' | null;
 
+const SEARXNG_URL = (import.meta.env.VITE_SEARXNG_URL ?? '').replace(/\/$/, '');
+
+function searxngSearchUrl(q: string, engine?: string): string {
+  if (!SEARXNG_URL) {
+    // Fallback to direct DuckDuckGo if SearXNG is not configured
+    return `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+  }
+  const engineParam = engine ? `&engines=${engine}` : '';
+  return `${SEARXNG_URL}/search?q=${encodeURIComponent(q)}&format=html${engineParam}`;
+}
+
 const SEARCH_ENGINES = [
-  { id: 'ddg', label: 'DuckDuckGo', url: (q: string) => `https://duckduckgo.com/?q=${q}` },
-  { id: 'google', label: 'Google', url: (q: string) => `https://www.google.com/search?q=${q}` },
-  { id: 'bing', label: 'Bing', url: (q: string) => `https://www.bing.com/search?q=${q}` },
+  { id: 'ddg', label: 'DuckDuckGo (SearXNG)', url: (q: string) => searxngSearchUrl(q, 'duckduckgo') },
+  { id: 'google', label: 'Google (SearXNG)', url: (q: string) => searxngSearchUrl(q, 'google') },
+  { id: 'bing', label: 'Bing (SearXNG)', url: (q: string) => searxngSearchUrl(q, 'bing') },
 ] as const;
 type SearchEngineId = (typeof SEARCH_ENGINES)[number]['id'];
 
 const NEW_TAB_URL = 'about:blank';
-const HOME_URL = 'https://duckduckgo.com';
+const HOME_URL = SEARXNG_URL ? `${SEARXNG_URL}/search?q=home&format=html` : 'https://duckduckgo.com';
 const LS_BOOKMARKS = 'waypoint.bookmarks';
 const LS_HISTORY = 'waypoint.history';
 const LS_ENGINE = 'waypoint.engine';

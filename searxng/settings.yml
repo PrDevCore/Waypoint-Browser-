@@ -1,0 +1,29 @@
+server:
+  bind: "0.0.0.0:8080"
+  base_url: https://search.yourdomain.com
+  secret: "CHANGE_ME_TO_A_LONG_RANDOM_STRING"
+  limiter: false
+
+outgoing:
+  request_timeout: 5.0
+
+search:
+  formats:
+    - html
+    - json
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: false
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: d
+    disabled: false
+  - name: bing
+    engine: bing
+    shortcut: b
+    disabled: false
+
+safesearch: 0
