@@ -123,7 +123,7 @@ export interface BrowsingData {
 
 export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
   searchEngine: 'ddg',
-  homepage: 'https://duckduckgo.com',
+  homepage: 'about:blank',
   newTabPage: 'blank',
   restoreOnStartup: 'default',
   fontSize: 'medium',

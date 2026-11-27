@@ -1,7 +1,7 @@
 server:
   bind: "0.0.0.0:8080"
   base_url: https://search.yourdomain.com
-  secret: "CHANGE_ME_TO_A_LONG_RANDOM_STRING"
+  secret: "6f412b54063a090bbaa958be80e07389c64d6b4380b50ae407b5f533f2638147"
   limiter: false
 
 outgoing:

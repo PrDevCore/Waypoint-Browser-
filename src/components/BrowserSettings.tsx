@@ -84,6 +84,7 @@ export function readBrowserSettings(): BrowserSettingsType {
     if (homepage.protocol !== 'http:' && homepage.protocol !== 'https:') settings.homepage = DEFAULT_BROWSER_SETTINGS.homepage;
     if (!['ddg', 'google', 'bing'].includes(settings.searchEngine)) settings.searchEngine = DEFAULT_BROWSER_SETTINGS.searchEngine;
     if (!Number.isFinite(settings.zoomLevel) || settings.zoomLevel < 50 || settings.zoomLevel > 200) settings.zoomLevel = DEFAULT_BROWSER_SETTINGS.zoomLevel;
+    if (SEARXNG_URL) settings.homepage = `${SEARXNG_URL}/search?q=home&format=html`;
     return settings;
   } catch {
     return { ...DEFAULT_BROWSER_SETTINGS };
